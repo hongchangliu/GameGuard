@@ -48,6 +48,17 @@ class PolicyController(private val context: Context) {
     fun isInstallBlocked(): Boolean = context.getSystemService(UserManager::class.java)
         .hasUserRestriction(UserManager.DISALLOW_INSTALL_APPS)
 
+    fun isFactoryResetBlocked(): Boolean = context.getSystemService(UserManager::class.java)
+        .hasUserRestriction(UserManager.DISALLOW_FACTORY_RESET)
+
+    fun setFactoryResetBlocked(blocked: Boolean) {
+        require(isOwner() && !isPausedForRemoval()) { "需要已启用的设备所有者策略" }
+        if (blocked) dpm.addUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
+        else dpm.clearUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
+        check(isFactoryResetBlocked() == blocked) { "系统未能更新恢复出厂设置限制" }
+        setMessage(if (blocked) "已限制从系统设置恢复出厂设置" else "已允许从系统设置恢复出厂设置")
+    }
+
     fun lastMessage(): String = prefs.getString("last_message", "") ?: ""
 
     fun setMessage(message: String) {

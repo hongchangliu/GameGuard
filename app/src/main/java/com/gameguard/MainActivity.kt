@@ -70,7 +70,8 @@ class MainActivity : Activity() {
         content.removeAllViews()
         text("应用使用管理", 24f)
         text("设备所有者：${if (policy.isOwner()) "已启用" else "未启用"}\n" +
-            "全局禁止安装：${if (policy.isInstallBlocked()) "已启用" else "未启用"}", 17f)
+            "全局禁止安装：${if (policy.isInstallBlocked()) "已启用" else "未启用"}\n" +
+            "设置中恢复出厂设置：${if (policy.isFactoryResetBlocked()) "已限制" else "未限制"}", 17f)
         if (policy.lastMessage().isNotBlank()) text(policy.lastMessage(), 14f)
         if (!credentials.isSet()) {
             text("请先设置管理员密码（至少 8 位）。忘记后无法在应用内重置。", 15f)
@@ -90,6 +91,14 @@ class MainActivity : Activity() {
         } else if (credentials.isSet()) {
             button("管理员手动安装 APK（可选）") { chooseApk() }
             text("非黑名单应用可从应用市场正常安装；黑名单应用安装后会禁止运行。", 14f)
+            val blocked = policy.isFactoryResetBlocked()
+            button(if (blocked) "管理员允许恢复出厂设置" else "管理员限制恢复出厂设置") {
+                requestAdmin(if (blocked) "允许从系统设置恢复出厂设置" else "限制从系统设置恢复出厂设置") {
+                    try { policy.setFactoryResetBlocked(!blocked); refresh() }
+                    catch (e: Exception) { showError(e.message ?: "更新失败") }
+                }
+            }
+            text("此开关只限制系统设置中的恢复出厂设置入口。", 14f)
         }
 
         if (policy.isOwner() && credentials.isSet() && !policy.isPausedForRemoval()) {
