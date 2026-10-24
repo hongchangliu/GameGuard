@@ -71,7 +71,8 @@ class MainActivity : Activity() {
         text("应用使用管理", 24f)
         text("设备所有者：${if (policy.isOwner()) "已启用" else "未启用"}\n" +
             "全局禁止安装：${if (policy.isInstallBlocked()) "已启用" else "未启用"}\n" +
-            "设置中恢复出厂设置：${if (policy.isFactoryResetBlocked()) "已限制" else "未限制"}", 17f)
+            "设置中恢复出厂设置：${if (policy.isFactoryResetBlocked()) "已限制" else "未限制"}\n" +
+            "添加新用户：${if (policy.isAddingUsersBlocked()) "已限制" else "未限制"}", 17f)
         if (policy.lastMessage().isNotBlank()) text(policy.lastMessage(), 14f)
         if (!credentials.isSet()) {
             text("请先设置管理员密码（至少 8 位）。忘记后无法在应用内重置。", 15f)
@@ -99,6 +100,13 @@ class MainActivity : Activity() {
                 }
             }
             text("此开关只限制系统设置中的恢复出厂设置入口。", 14f)
+            val addingUsersBlocked = policy.isAddingUsersBlocked()
+            button(if (addingUsersBlocked) "管理员允许添加用户" else "管理员限制添加用户") {
+                requestAdmin(if (addingUsersBlocked) "允许添加新用户" else "限制添加新用户") {
+                    try { policy.setAddingUsersBlocked(!addingUsersBlocked); refresh() }
+                    catch (e: Exception) { showError(e.message ?: "更新失败") }
+                }
+            }
         }
 
         if (policy.isOwner() && credentials.isSet() && !policy.isPausedForRemoval()) {

@@ -51,6 +51,18 @@ class PolicyController(private val context: Context) {
     fun isFactoryResetBlocked(): Boolean = context.getSystemService(UserManager::class.java)
         .hasUserRestriction(UserManager.DISALLOW_FACTORY_RESET)
 
+    fun isAddingUsersBlocked(): Boolean = context.getSystemService(UserManager::class.java)
+        .hasUserRestriction(UserManager.DISALLOW_ADD_USER)
+
+    fun setAddingUsersBlocked(blocked: Boolean) {
+        require(isOwner() && !isPausedForRemoval()) { "需要已启用的设备所有者策略" }
+        if (blocked) dpm.addUserRestriction(admin, UserManager.DISALLOW_ADD_USER)
+        else dpm.clearUserRestriction(admin, UserManager.DISALLOW_ADD_USER)
+        check(isAddingUsersBlocked() == blocked) { "系统未能更新添加用户限制" }
+        check(prefs.edit().putBoolean("allow_new_users", !blocked).commit())
+        setMessage(if (blocked) "已限制添加新用户" else "已允许添加新用户")
+    }
+
     fun setFactoryResetBlocked(blocked: Boolean) {
         require(isOwner() && !isPausedForRemoval()) { "需要已启用的设备所有者策略" }
         if (blocked) dpm.addUserRestriction(admin, UserManager.DISALLOW_FACTORY_RESET)
@@ -93,6 +105,9 @@ class PolicyController(private val context: Context) {
         if (!isOwner() || isPausedForRemoval()) return
         // Remove the previous release's global restriction so non-blacklisted apps can install.
         dpm.clearUserRestriction(admin, UserManager.DISALLOW_INSTALL_APPS)
+        if (!prefs.getBoolean("allow_new_users", false)) {
+            dpm.addUserRestriction(admin, UserManager.DISALLOW_ADD_USER)
+        }
         dpm.setShortSupportMessage(admin, "请和爸爸联系")
         dpm.setLongSupportMessage(admin, "请和爸爸联系")
         if (!prefs.getBoolean("baseline_ready", false)) {
